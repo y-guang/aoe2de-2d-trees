@@ -1,6 +1,6 @@
 # AGENTS GUIDE
 
-这个项目旨在解析已有的 aoe2de tree-related mod，并进行图形贴图替换，创建新的 mod.
+This project aims to analyse existing AoE2 tree-related mods and create new mods by replacing their graphical textures.
 
 ## Code Style Requirements
 
@@ -37,4 +37,5 @@ In the `reference` folder, you can find
     - YYMMDD_HHMM-*.md  # report prefix with date.
 - reference/  # relevant resources, such as tools, other mod projects. Treat this as read-only reference material.
   - reference.md/ provide a guide for resources. use it as a starting point.
+- tmp/  # temporary or intermediate files, which is ignored by git.
 ```

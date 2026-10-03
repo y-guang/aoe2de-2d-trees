@@ -11,3 +11,4 @@ wheels/
 
 reference/*
 !reference/reference.md
+tmp/
