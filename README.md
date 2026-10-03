@@ -5,8 +5,11 @@ diamond bases. Standard and UHD graphics are included; stumps are hidden.
 
 ## Generate the mod
 
-You need Python 3.14+, uv, and the palette file at
-`reference/SMX-Workshop/palettes/n_trees.pal`.
+You need Python 3.14+ and uv. Initialize the pinned palette dependency first:
+
+```powershell
+git submodule update --init
+```
 
 Run from the project root:
 

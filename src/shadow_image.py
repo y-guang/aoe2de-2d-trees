@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, PngImagePlugin
+from PIL import Image, PngImagePlugin
 
 from .smx import Layer, encode_layer
 
@@ -12,16 +12,20 @@ SHADOW_ALPHA = 96
 
 def render_shadow(width: int, height: int, empty: bool, destination: Path) -> int:
     cx, cy = width // 2, height // 2
-    image = Image.new("RGBA", (width, height))
+    rgba = np.zeros((height, width, 4), dtype=np.uint8)
     if not empty:
-        ImageDraw.Draw(image).polygon(
-            [(cx, 0), (width - 1, cy), (cx, height - 1), (0, cy)],
-            fill=(0, 0, 0, SHADOW_ALPHA),
-        )
+        y, x = np.indices((height, width))
+        # Test pixel centers against the full diamond, not width-1/height-1 vertices.
+        inside = (np.abs(2*x + 1 - width) * height
+                  + np.abs(2*y + 1 - height) * width) < width*height
+        rgba[inside, 3] = SHADOW_ALPHA
+    image = Image.fromarray(rgba)
     metadata = PngImagePlugin.PngInfo()
     metadata.add_text("hotspot_x", str(cx))
     metadata.add_text("hotspot_y", str(cy))
-    image.save(destination, pnginfo=metadata)
+    temporary = destination.with_suffix(".tmp.png")
+    image.save(temporary, pnginfo=metadata)
+    temporary.replace(destination)
     return int(np.count_nonzero(np.asarray(image)[:, :, 3]))
 
 

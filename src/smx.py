@@ -15,7 +15,6 @@ from PIL import Image
 
 Pixels = NDArray[np.int32]
 Kind = Literal["main", "shadow", "outline"]
-PALETTE_FILES = {20: "b_east.pal", 28: "b_scen.pal", 30: "n_trees.pal"}
 
 
 @dataclass
@@ -128,7 +127,7 @@ def read_smx(path: Path) -> Sprite:
     pos = 32
     for _ in range(count):
         flags, palette, smp_size = struct.unpack_from("<BBI", blob, pos)
-        assert flags in (1, 3, 7) and palette in PALETTE_FILES
+        assert flags in (1, 3, 7) and palette == 30
         pos += 6
         layers = []
         kinds: tuple[Kind, ...] = ("main", "shadow", "outline")
@@ -142,8 +141,8 @@ def read_smx(path: Path) -> Sprite:
     return Sprite(version, memo, frames)
 
 
-def load_palette(palette_id: int, directory: Path) -> Pixels:
-    lines = (directory / PALETTE_FILES[palette_id]).read_text().splitlines()
+def load_palette(path: Path) -> Pixels:
+    lines = path.read_text().splitlines()
     assert lines[0] == "JASC-PAL" and int(lines[2]) == 1024
     # Match Workshop's RGB loader; its fourth text column is not used as alpha.
     return np.array([[int(v) for v in line.split()[:3]] for line in lines[3:1027]], dtype=np.int32)

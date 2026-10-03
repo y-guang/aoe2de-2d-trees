@@ -1,0 +1,3 @@
+[submodule "external/SMX-Workshop"]
+	path = external/SMX-Workshop
+	url = https://github.com/ImWG/SMX-Workshop.git
