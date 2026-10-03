@@ -10,8 +10,8 @@ LEFT = (24, 90, 31, 255)
 RIGHT = (35, 124, 42, 255)
 
 
-def _cube(radius: int, height: int) -> tuple[Image.Image, tuple[int, int]]:
-    depth = max(1, radius // 2)
+def _cube(radius: int, height: int, depth: int | None = None) -> tuple[Image.Image, tuple[int, int]]:
+    depth = max(1, radius // 2) if depth is None else depth
     image = Image.new("RGBA", (2 * radius + 1, 2 * depth + height + 1))
     draw = ImageDraw.Draw(image)
     north = (radius, 0)
@@ -26,7 +26,7 @@ def _cube(radius: int, height: int) -> tuple[Image.Image, tuple[int, int]]:
 
 
 def render_main(shadow_area: int, shadow_width: int, destination: Path, *, fallen: bool = False) -> tuple[int, int]:
-    """Keep the cube unchanged and pad its canvas to the shadow width."""
+    """Use the original small cube, with half the base area when fallen."""
     if shadow_area == 0:
         image, hotspot = Image.new("RGBA", (1, 1)), (0, 0)
         image.save(destination, pnginfo=_metadata(hotspot))
@@ -38,27 +38,18 @@ def render_main(shadow_area: int, shadow_width: int, destination: Path, *, falle
         candidates,
         key=lambda size: abs(int(np.count_nonzero(np.asarray(_cube(*size)[0])[:, :, 3])) - target),
     )
-    cube, hotspot = _cube(radius, height)
+    cube, _ = _cube(radius, height)
+    # Both states retain the existing padded canvas and center hotspot.
+    canvas_height = round(cube.height * shadow_width / cube.width)
     if fallen:
-        # Center both hatch families on the top face; reflections swap the families.
-        # Integer distances keep spacing and pixel coverage symmetric on both axes.
-        depth = max(1, radius // 2)
-        rgba = np.array(cube)
-        y, x = np.indices(rgba.shape[:2])
-        u = (x - radius) * depth + (y - depth) * radius
-        v = (x - radius) * depth - (y - depth) * radius
-        period = depth * round(2 * radius / 3)
-        thickness = depth * max(1, round(radius / 20))
-        hatch = (np.minimum(u % period, (-u) % period) <= thickness) | (
-                 np.minimum(v % period, (-v) % period) <= thickness)
-        top_face = np.all(rgba == TOP, axis=2)
-        rgba[hatch & top_face] = (0, 0, 0, 255)
-        cube = Image.fromarray(rgba)
+        # Halve the ground-plane area: scale both edge lengths by sqrt(1/2).
+        # Preserve the vertical thickness; round projected dimensions to pixels.
+        scale = 0.5**0.5
+        cube, _ = _cube(round(radius * scale), height, round((radius // 2) * scale))
     # User-confirmed in-game: main-layer bounds expand the clickable area even
     # with alpha=0 padding. Preserve this canvas through PNG and SMX encoding;
     # cropping to visible pixels would undo the fix. See
     # agent/reports/261003_2241-transparent-main-click-area.md.
-    canvas_height = round(cube.height * shadow_width / cube.width)
     image = Image.new("RGBA", (shadow_width, canvas_height))
     # Align the main canvas center with the shadow center for stable click bounds.
     # Center the visible cube too; odd/even pixel sizes can differ by one pixel.

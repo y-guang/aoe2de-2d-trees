@@ -8,8 +8,8 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from src.main import BUILD, MODELS, MOD, PALETTE, main
-from src.smx import encode_layer, load_palette, read_layer_file, read_smx
+from src.main import BUILD, MODELS, MOD, main
+from src.smx import encode_layer, read_layer_file, read_smx
 
 
 class BuildTests(unittest.TestCase):
@@ -70,7 +70,7 @@ class BuildTests(unittest.TestCase):
                 if not empty:
                     self.assertEqual(image.width, width)
                     cube_width, cube_height = (41, 25) if width == 96 else (79, 49)
-                    self.assertEqual(image.height, round(cube_height * width / cube_width))
+                    self.assertEqual(image.height, 59 if width == 96 else 119)
                     left, top, right, bottom = image.getbbox()
                     self.assertEqual((right - left, bottom - top), (cube_width, cube_height))
                     hotspot = (int(image.info["hotspot_x"]), int(image.info["hotspot_y"]))
@@ -78,7 +78,7 @@ class BuildTests(unittest.TestCase):
                     shadow_top = hotspot[1] - height // 2
                     gap_above = top - shadow_top
                     gap_below = shadow_top + height - bottom
-                    self.assertGreaterEqual(gap_below, 0)
+                    self.assertLessEqual(abs(left - (width - right)), 1)
                     self.assertLessEqual(abs(gap_above - gap_below), 1)
                     layer = read_layer_file(BUILD / f"main_{suffix}.bin", "main")
                     self.assertEqual((layer.width, layer.height), image.size)
@@ -86,16 +86,22 @@ class BuildTests(unittest.TestCase):
             with Image.open(BUILD / f"preview_shadow_{suffix}.png") as image:
                 shadow = np.asarray(image)
                 self.assertEqual(image.size, (width, height))
+            if not empty:
+                aligned = main_alpha[shadow_top:shadow_top+height] > 0
+                self.assertFalse(np.any(aligned & (shadow[:, :, 3] == 0)))
             self.assertFalse(shadow[:, :, :3].any())
             if empty:
                 self.assertFalse(main_alpha.any())
                 self.assertFalse(shadow[:, :, 3].any())
             else:
                 self.assertEqual(set(np.unique(shadow[:, :, 3])), {0, 96})
-                ratio = np.count_nonzero(main_alpha) / np.count_nonzero(shadow[:, :, 3])
-                self.assertAlmostEqual(ratio, 0.25, delta=0.02)
+                with Image.open(BUILD / f"preview_main_{suffix}_fallen.png") as fallen_image:
+                    fallen_area = np.count_nonzero(np.asarray(fallen_image)[:, :, 3])
+                self.assertGreater(np.count_nonzero(main_alpha), fallen_area)
+                self.assertAlmostEqual(np.count_nonzero(main_alpha) / np.count_nonzero(shadow[:, :, 3]),
+                                       0.25, delta=0.02)
 
-    def test_fallen_hatching_is_symmetric_and_preserves_canvas(self) -> None:
+    def test_fallen_has_half_base_area_without_markings(self) -> None:
         self.assertEqual(sum(m.fallen for m in MODELS), 8)
         for width, height in ((96, 48), (192, 96)):
             suffix = f"{width}x{height}"
@@ -103,14 +109,18 @@ class BuildTests(unittest.TestCase):
             fallen = read_layer_file(BUILD / f"main_{suffix}_fallen.bin", "main")
             self.assertEqual(fallen.hotspot, upright.hotspot)
             self.assertEqual((fallen.width, fallen.height), (upright.width, upright.height))
-            np.testing.assert_array_equal(fallen.pixels >= 0, upright.pixels >= 0)
-            changed = fallen.pixels != upright.pixels
-            self.assertTrue(changed.any())
-            self.assertFalse(load_palette(PALETTE)[fallen.pixels[changed]].any())
-            rows, columns = np.nonzero(changed)
-            pattern = changed[rows.min():rows.max()+1, columns.min():columns.max()+1]
-            np.testing.assert_array_equal(pattern, pattern[:, ::-1])
-            np.testing.assert_array_equal(pattern, pattern[::-1, :])
+            y, x = np.nonzero(fallen.pixels >= 0)
+            self.assertEqual((x.max()-x.min()+1, y.max()-y.min()+1),
+                             (29, 19) if width == 96 else (57, 37))
+            standing_radius = (41 - 1) // 2 if width == 96 else (79 - 1) // 2
+            fallen_radius = (x.max() - x.min()) // 2
+            fallen_depth = (y.max() - y.min() - (4 if width == 96 else 10)) // 2
+            base_area_ratio = (fallen_radius * fallen_depth
+                               / (standing_radius * (standing_radius // 2)))
+            self.assertAlmostEqual(base_area_ratio, 0.5, delta=0.02)
+            self.assertEqual(set(fallen.pixels[fallen.pixels >= 0]),
+                             set(upright.pixels[upright.pixels >= 0]))
+            self.assertEqual(len(set(fallen.pixels[fallen.pixels >= 0])), 3)
 
     def test_every_file_uses_binary_layers_and_expected_frames(self) -> None:
         graphics = MOD / "resources/_common/drs/graphics"
