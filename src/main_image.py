@@ -6,8 +6,8 @@ import numpy as np
 from PIL import Image, ImageDraw, PngImagePlugin
 
 TOP = (58, 170, 64, 255)
-LEFT = (35, 124, 42, 255)
-RIGHT = (24, 90, 31, 255)
+LEFT = (24, 90, 31, 255)
+RIGHT = (35, 124, 42, 255)
 
 
 def _cube(radius: int, height: int) -> tuple[Image.Image, tuple[int, int]]:
