@@ -1,7 +1,7 @@
 [project]
-name = "aoe2de-flat-tree"
+name = "2d-tree"
 version = "0.1.0"
-description = "Generate uniform cube tree graphics and an AoE2DE local mod"
+description = "Minimalist flat AoE2DE trees with full-tile clicking"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

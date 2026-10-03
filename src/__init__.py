@@ -1,1 +1,1 @@
-"""Generate flat-tree graphics from the local reference mod."""
+"""Generate minimalist 2D tree graphics and an AoE2DE local mod."""

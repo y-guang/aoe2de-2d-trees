@@ -16,7 +16,7 @@ wheels = [
 ]
 
 [[package]]
-name = "aoe2de-flat-tree"
+name = "2d-tree"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

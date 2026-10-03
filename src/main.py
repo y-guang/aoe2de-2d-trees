@@ -12,7 +12,8 @@ from .smx import Frame, Sprite, load_palette, main_from_png, read_layer_file, re
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build"
-MOD = ROOT / "dist/Flat Trees"
+MOD_TITLE = "2D Trees - Minimalist, Flat Trees, Full-Tile Clickable"
+MOD = ROOT / "dist" / MOD_TITLE
 PALETTE = ROOT / "external/SMX-Workshop/palettes/n_trees.pal"
 
 
@@ -176,16 +177,23 @@ def main() -> None:
                 read_layer_file(main_bin, "main"),
                 read_layer_file(shadow_bin, "shadow"),
             ])
-        sprite = Sprite(2, b"Flat Trees".ljust(16, b"\0"),
+        sprite = Sprite(2, b"2D Trees".ljust(16, b"\0"),
                         [variants[key]] * model.frames)
         write_smx(sprite, graphics / name)
 
     info = {
-        "Title": "Flat Trees",
-        "Author": "Local build",
-        "Description": "2D Flat green cubes. Remove Stumps. Whole tile including shadows clickable."
-                       "Standard and UHD."
-                       "2D 版本极简小树",
+        "Title": MOD_TITLE,
+        "Author": "y-guang",
+        "Description": (
+            "Trees are reduced to an extremely thin, almost completely flat layer, "
+            "keeping the map clear and unobstructed.\n"
+            "More importantly, the entire tree tile is clickable.\n"
+            "You no longer need to carefully hunt for the small clickable part of the "
+            "original tree graphic — simply click anywhere on the tile to select it.\n\n"
+            "将树木简化为近乎平面，让地图清晰、无遮挡。点击地块任意位置即可选中树木。\n\n"
+            "Inspired by Anne_HK's Identical Pine Trees with Grid Shadow mod."
+            "\n\nSource: https://github.com/y-guang/aoe2de-2d-trees"
+        ),
         "CacheStatus": 0,
     }
     (MOD / "info.json").write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
