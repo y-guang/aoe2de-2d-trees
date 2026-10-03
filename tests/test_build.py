@@ -73,7 +73,13 @@ class BuildTests(unittest.TestCase):
                     self.assertEqual(image.height, round(cube_height * width / cube_width))
                     left, top, right, bottom = image.getbbox()
                     self.assertEqual((right - left, bottom - top), (cube_width, cube_height))
-                    self.assertLessEqual(abs(top - 2 * (image.height - bottom)), 1)
+                    hotspot = (int(image.info["hotspot_x"]), int(image.info["hotspot_y"]))
+                    self.assertEqual(hotspot, (image.width // 2, image.height // 2))
+                    shadow_top = hotspot[1] - height // 2
+                    gap_above = top - shadow_top
+                    gap_below = shadow_top + height - bottom
+                    self.assertGreaterEqual(gap_below, 0)
+                    self.assertLessEqual(abs(gap_above - gap_below), 1)
                     layer = read_layer_file(BUILD / f"main_{suffix}.bin", "main")
                     self.assertEqual((layer.width, layer.height), image.size)
                     np.testing.assert_array_equal(layer.pixels >= 0, main_alpha > 0)
@@ -89,17 +95,22 @@ class BuildTests(unittest.TestCase):
                 ratio = np.count_nonzero(main_alpha) / np.count_nonzero(shadow[:, :, 3])
                 self.assertAlmostEqual(ratio, 0.25, delta=0.02)
 
-    def test_fallen_mark_preserves_shape_and_anchor(self) -> None:
+    def test_fallen_hatching_is_symmetric_and_preserves_canvas(self) -> None:
         self.assertEqual(sum(m.fallen for m in MODELS), 8)
         for width, height in ((96, 48), (192, 96)):
             suffix = f"{width}x{height}"
             upright = read_layer_file(BUILD / f"main_{suffix}.bin", "main")
             fallen = read_layer_file(BUILD / f"main_{suffix}_fallen.bin", "main")
             self.assertEqual(fallen.hotspot, upright.hotspot)
+            self.assertEqual((fallen.width, fallen.height), (upright.width, upright.height))
             np.testing.assert_array_equal(fallen.pixels >= 0, upright.pixels >= 0)
             changed = fallen.pixels != upright.pixels
-            self.assertTrue(np.any(changed))
+            self.assertTrue(changed.any())
             self.assertFalse(load_palette(PALETTE)[fallen.pixels[changed]].any())
+            rows, columns = np.nonzero(changed)
+            pattern = changed[rows.min():rows.max()+1, columns.min():columns.max()+1]
+            np.testing.assert_array_equal(pattern, pattern[:, ::-1])
+            np.testing.assert_array_equal(pattern, pattern[::-1, :])
 
     def test_every_file_uses_binary_layers_and_expected_frames(self) -> None:
         graphics = MOD / "resources/_common/drs/graphics"

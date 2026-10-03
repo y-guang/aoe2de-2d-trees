@@ -40,26 +40,31 @@ def render_main(shadow_area: int, shadow_width: int, destination: Path, *, falle
     )
     cube, hotspot = _cube(radius, height)
     if fallen:
-        # An inset X follows the top face perspective without enlarging its silhouette.
+        # Center both hatch families on the top face; reflections swap the families.
+        # Integer distances keep spacing and pixel coverage symmetric on both axes.
         depth = max(1, radius // 2)
-        dx, dy = 2 * radius // 5, 2 * depth // 5
-        draw = ImageDraw.Draw(cube)
-        for direction in (-1, 1):
-            draw.line([(radius - dx, depth - direction * dy),
-                       (radius + dx, depth + direction * dy)],
-                      fill=(0, 0, 0, 255), width=max(1, radius // 10))
+        rgba = np.array(cube)
+        y, x = np.indices(rgba.shape[:2])
+        u = (x - radius) * depth + (y - depth) * radius
+        v = (x - radius) * depth - (y - depth) * radius
+        period = depth * round(2 * radius / 3)
+        thickness = depth * max(1, round(radius / 20))
+        hatch = (np.minimum(u % period, (-u) % period) <= thickness) | (
+                 np.minimum(v % period, (-v) % period) <= thickness)
+        top_face = np.all(rgba == TOP, axis=2)
+        rgba[hatch & top_face] = (0, 0, 0, 255)
+        cube = Image.fromarray(rgba)
     # User-confirmed in-game: main-layer bounds expand the clickable area even
     # with alpha=0 padding. Preserve this canvas through PNG and SMX encoding;
     # cropping to visible pixels would undo the fix. See
     # agent/reports/261003_2241-transparent-main-click-area.md.
     canvas_height = round(cube.height * shadow_width / cube.width)
     image = Image.new("RGBA", (shadow_width, canvas_height))
-    # Put two thirds of the vertical transparent margin above the cube.
-    # Hotspot compensation preserves its placement on the shadow.
-    offset = ((image.width - cube.width) // 2, round(2 * (image.height - cube.height) / 3))
+    # Align the main canvas center with the shadow center for stable click bounds.
+    # Center the visible cube too; odd/even pixel sizes can differ by one pixel.
+    hotspot = (image.width // 2, image.height // 2)
+    offset = ((image.width - cube.width) // 2, (image.height - cube.height) // 2)
     image.paste(cube, offset)
-    # Keep the unchanged cube at the same position relative to the game origin.
-    hotspot = (hotspot[0] + offset[0], hotspot[1] + offset[1])
     image.save(destination, pnginfo=_metadata(hotspot))
     return hotspot
 
