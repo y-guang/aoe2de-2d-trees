@@ -67,6 +67,15 @@ class BuildTests(unittest.TestCase):
             suffix = f"{width}x{height}" + ("_empty" if empty else "")
             with Image.open(BUILD / f"preview_main_{suffix}.png") as image:
                 main_alpha = np.asarray(image)[:, :, 3]
+                if not empty:
+                    self.assertEqual(image.width, width)
+                    cube_width, cube_height = (41, 25) if width == 96 else (79, 49)
+                    self.assertEqual(image.height, round(cube_height * width / cube_width))
+                    left, top, right, bottom = image.getbbox()
+                    self.assertEqual((right - left, bottom - top), (cube_width, cube_height))
+                    layer = read_layer_file(BUILD / f"main_{suffix}.bin", "main")
+                    self.assertEqual((layer.width, layer.height), image.size)
+                    np.testing.assert_array_equal(layer.pixels >= 0, main_alpha > 0)
             with Image.open(BUILD / f"preview_shadow_{suffix}.png") as image:
                 shadow = np.asarray(image)
                 self.assertEqual(image.size, (width, height))

@@ -25,8 +25,8 @@ def _cube(radius: int, height: int) -> tuple[Image.Image, tuple[int, int]]:
     return image, (radius, depth + height)
 
 
-def render_main(shadow_area: int, destination: Path) -> tuple[int, int]:
-    """Match opaque cube area to one quarter of nonzero-alpha shadow area."""
+def render_main(shadow_area: int, shadow_width: int, destination: Path) -> tuple[int, int]:
+    """Keep the cube unchanged and pad its canvas to the shadow width."""
     if shadow_area == 0:
         image, hotspot = Image.new("RGBA", (1, 1)), (0, 0)
         image.save(destination, pnginfo=_metadata(hotspot))
@@ -38,7 +38,12 @@ def render_main(shadow_area: int, destination: Path) -> tuple[int, int]:
         candidates,
         key=lambda size: abs(int(np.count_nonzero(np.asarray(_cube(*size)[0])[:, :, 3])) - target),
     )
-    image, hotspot = _cube(radius, height)
+    cube, hotspot = _cube(radius, height)
+    canvas_height = round(cube.height * shadow_width / cube.width)
+    image = Image.new("RGBA", (shadow_width, canvas_height))
+    offset = ((image.width - cube.width) // 2, (image.height - cube.height) // 2)
+    image.paste(cube, offset)
+    hotspot = (hotspot[0] + offset[0], hotspot[1] + offset[1])
     image.save(destination, pnginfo=_metadata(hotspot))
     return hotspot
 

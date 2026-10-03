@@ -164,7 +164,7 @@ def main() -> None:
             main_png = BUILD / f"preview_main_{suffix}.png"
             shadow_png = BUILD / f"preview_shadow_{suffix}.png"
             area = render_shadow(width, height, empty, shadow_png)
-            render_main(area, main_png)
+            render_main(area, width, main_png)
             main_bin = BUILD / f"main_{suffix}.bin"
             shadow_bin = BUILD / f"shadow_{suffix}.bin"
             main_bin.write_bytes(main_from_png(main_png, palette).encoded)
