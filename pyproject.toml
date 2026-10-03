@@ -1,0 +1,7 @@
+[project]
+name = "aoe2de-flat-tree"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=13.14"
+dependencies = []
