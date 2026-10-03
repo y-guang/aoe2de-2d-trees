@@ -38,4 +38,5 @@ In the `reference` folder, you can find
 - reference/  # relevant resources, such as tools, other mod projects. Treat this as read-only reference material.
   - reference.md/ provide a guide for resources. use it as a starting point.
 - tmp/  # temporary or intermediate files, which is ignored by git.
+- README.md  # Keep README.md user-facing; put developer documentation and logs in agent/reports/.
 ```

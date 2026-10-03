@@ -1,11 +1,12 @@
 [project]
 name = "aoe2de-flat-tree"
 version = "0.1.0"
-description = "Add your description here"
+description = "Generate uniform cube tree graphics and an AoE2DE local mod"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "numpy>=2.5.3",
+    "pillow>=12.3.0",
 ]
 
 [dependency-groups]

@@ -1,6 +1,4 @@
-def main():
-    print("Hello from aoe2de-flat-tree!")
-
+from src.main import main
 
 if __name__ == "__main__":
     main()
