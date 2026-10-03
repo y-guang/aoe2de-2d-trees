@@ -36,5 +36,5 @@ In the `reference` folder, you can find
   - reports/  # gather all one-time agent reports here.
     - YYMMDD_HHMM-*.md  # report prefix with date.
 - reference/  # relevant resources, such as tools, other mod projects. Treat this as read-only reference material.
-  - reference.md/ provide related links and resources. use it as a starting point.
+  - reference.md/ provide a guide for resources. use it as a starting point.
 ```
