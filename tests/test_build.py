@@ -8,8 +8,8 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from src.main import BUILD, MODELS, MOD, main
-from src.smx import encode_layer, read_layer_file, read_smx
+from src.main import BUILD, MODELS, MOD, PALETTE, main
+from src.smx import encode_layer, load_palette, read_layer_file, read_smx
 
 
 class BuildTests(unittest.TestCase):
@@ -73,6 +73,7 @@ class BuildTests(unittest.TestCase):
                     self.assertEqual(image.height, round(cube_height * width / cube_width))
                     left, top, right, bottom = image.getbbox()
                     self.assertEqual((right - left, bottom - top), (cube_width, cube_height))
+                    self.assertLessEqual(abs(top - 2 * (image.height - bottom)), 1)
                     layer = read_layer_file(BUILD / f"main_{suffix}.bin", "main")
                     self.assertEqual((layer.width, layer.height), image.size)
                     np.testing.assert_array_equal(layer.pixels >= 0, main_alpha > 0)
@@ -88,6 +89,18 @@ class BuildTests(unittest.TestCase):
                 ratio = np.count_nonzero(main_alpha) / np.count_nonzero(shadow[:, :, 3])
                 self.assertAlmostEqual(ratio, 0.25, delta=0.02)
 
+    def test_fallen_mark_preserves_shape_and_anchor(self) -> None:
+        self.assertEqual(sum(m.fallen for m in MODELS), 8)
+        for width, height in ((96, 48), (192, 96)):
+            suffix = f"{width}x{height}"
+            upright = read_layer_file(BUILD / f"main_{suffix}.bin", "main")
+            fallen = read_layer_file(BUILD / f"main_{suffix}_fallen.bin", "main")
+            self.assertEqual(fallen.hotspot, upright.hotspot)
+            np.testing.assert_array_equal(fallen.pixels >= 0, upright.pixels >= 0)
+            changed = fallen.pixels != upright.pixels
+            self.assertTrue(np.any(changed))
+            self.assertFalse(load_palette(PALETTE)[fallen.pixels[changed]].any())
+
     def test_every_file_uses_binary_layers_and_expected_frames(self) -> None:
         graphics = MOD / "resources/_common/drs/graphics"
         self.assertEqual({p.name for p in graphics.iterdir()}, {m.filename for m in MODELS})
@@ -95,7 +108,8 @@ class BuildTests(unittest.TestCase):
             name, width, height, empty = model.filename, model.width, model.height, model.empty
             with self.subTest(file=name):
                 suffix = f"{width}x{height}" + ("_empty" if empty else "")
-                layers = ((BUILD / f"main_{suffix}.bin").read_bytes()
+                main_suffix = suffix + ("_fallen" if model.fallen else "")
+                layers = ((BUILD / f"main_{main_suffix}.bin").read_bytes()
                           + (BUILD / f"shadow_{suffix}.bin").read_bytes())
                 blob = (graphics / name).read_bytes()
                 _, _, count, body_size, expanded, _ = struct.unpack_from("<4sHHII16s", blob)

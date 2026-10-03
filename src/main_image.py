@@ -25,7 +25,7 @@ def _cube(radius: int, height: int) -> tuple[Image.Image, tuple[int, int]]:
     return image, (radius, depth + height)
 
 
-def render_main(shadow_area: int, shadow_width: int, destination: Path) -> tuple[int, int]:
+def render_main(shadow_area: int, shadow_width: int, destination: Path, *, fallen: bool = False) -> tuple[int, int]:
     """Keep the cube unchanged and pad its canvas to the shadow width."""
     if shadow_area == 0:
         image, hotspot = Image.new("RGBA", (1, 1)), (0, 0)
@@ -39,10 +39,26 @@ def render_main(shadow_area: int, shadow_width: int, destination: Path) -> tuple
         key=lambda size: abs(int(np.count_nonzero(np.asarray(_cube(*size)[0])[:, :, 3])) - target),
     )
     cube, hotspot = _cube(radius, height)
+    if fallen:
+        # An inset X follows the top face perspective without enlarging its silhouette.
+        depth = max(1, radius // 2)
+        dx, dy = 2 * radius // 5, 2 * depth // 5
+        draw = ImageDraw.Draw(cube)
+        for direction in (-1, 1):
+            draw.line([(radius - dx, depth - direction * dy),
+                       (radius + dx, depth + direction * dy)],
+                      fill=(0, 0, 0, 255), width=max(1, radius // 10))
+    # User-confirmed in-game: main-layer bounds expand the clickable area even
+    # with alpha=0 padding. Preserve this canvas through PNG and SMX encoding;
+    # cropping to visible pixels would undo the fix. See
+    # agent/reports/261003_2241-transparent-main-click-area.md.
     canvas_height = round(cube.height * shadow_width / cube.width)
     image = Image.new("RGBA", (shadow_width, canvas_height))
-    offset = ((image.width - cube.width) // 2, (image.height - cube.height) // 2)
+    # Put two thirds of the vertical transparent margin above the cube.
+    # Hotspot compensation preserves its placement on the shadow.
+    offset = ((image.width - cube.width) // 2, round(2 * (image.height - cube.height) / 3))
     image.paste(cube, offset)
+    # Keep the unchanged cube at the same position relative to the game origin.
     hotspot = (hotspot[0] + offset[0], hotspot[1] + offset[1])
     image.save(destination, pnginfo=_metadata(hotspot))
     return hotspot
